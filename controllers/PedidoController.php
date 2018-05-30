@@ -9,6 +9,11 @@ use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
 
+use app\models\Producto;
+use app\models\Detallepedido;
+use app\models\Cliente;
+use yii\helpers\ArrayHelper;
+
 /**
  * PedidoController implements the CRUD actions for Pedido model.
  */
@@ -65,13 +70,28 @@ class PedidoController extends Controller
     public function actionCreate()
     {
         $model = new Pedido();
+        $model2= new Detallepedido();
 
-        if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->idpedido]);
+        if ($model->load(Yii::$app->request->post()) && $model2->load(Yii::$app->request->post())) {
+            $isValid=$model->validate();
+            $isValid=$model2->validate()&& $isValid;
+
+            if($isValid){
+                $transaction =Yii::$app->db->beginTransaction();
+                if($model->save(false)){
+                    $model2->pedidoid=$model->id;
+                    $model2->save(false);
+                    $transaction->commit();
+                }
+                return $this->redirect(['pedido/view','id'=>$model->id]);
+            }
         }
 
         return $this->render('create', [
             'model' => $model,
+            'model2'=>$model2,
+            'clients'=>ArrayHelper::map(Cliente::find()->all(),'idcliente','razonsocial'),
+            'productos'=>ArrayHelper::map(Producto::find()->all(),'idproducto','nombrep'),
         ]);
     }
 
